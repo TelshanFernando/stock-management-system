@@ -6,13 +6,6 @@ type InventoryRow = {
   reserved_quantity: number | string;
 };
 
-type PurchaseRow = {
-  id: string;
-  order_number: string;
-  status: string;
-  total_amount: number | string;
-  created_at: string;
-};
 
 type SaleRow = {
   id: string;
@@ -79,11 +72,6 @@ function getMovementTone(type: string) {
     : "bg-rose-50 text-rose-700 ring-rose-600/10";
 }
 
-function getPurchaseStatusTone(status: string) {
-  if (status === "pending") return "bg-amber-50 text-amber-700 ring-amber-600/10";
-  if (status === "partially_received") return "bg-blue-50 text-blue-700 ring-blue-600/10";
-  return "bg-slate-100 text-slate-700 ring-slate-600/10";
-}
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -123,7 +111,6 @@ export default async function DashboardPage() {
     error: null,
   };
   let inventoryResult: { data: InventoryRow[] | null; error: QueryError | null } = { data: [], error: null };
-  let purchaseResult: { data: PurchaseRow[] | null; error: QueryError | null } = { data: [], error: null };
   let salesResult: { data: SaleRow[] | null; error: QueryError | null } = { data: [], error: null };
   let movementResult: { data: MovementRow[] | null; error: QueryError | null } = { data: [], error: null };
 
@@ -163,24 +150,6 @@ export default async function DashboardPage() {
     inventoryResult = { data: [], error: err instanceof Error ? { message: err.message } : { message: String(err) } };
   }
 
-  // Purchase orders
-  try {
-    const result = await supabase
-      .from("purchase_orders")
-      .select("id, order_number, status, total_amount, created_at")
-      .in("status", ["draft", "pending", "partially_received"])
-      .order("created_at", { ascending: false })
-      .limit(5);
-    if (result.error) {
-      console.error("[Dashboard] purchase_orders query failed:", result.error);
-      purchaseResult = { data: [], error: result.error };
-    } else {
-      purchaseResult = { data: (result.data ?? []) as PurchaseRow[], error: null };
-    }
-  } catch (err) {
-    console.error("[Dashboard] purchase_orders query failed:", err);
-    purchaseResult = { data: [], error: err instanceof Error ? { message: err.message } : { message: String(err) } };
-  }
 
   // Sales
   try {
@@ -220,20 +189,17 @@ export default async function DashboardPage() {
   }
 
   const inventoryRows = (inventoryResult.data ?? []) as InventoryRow[];
-  const purchaseRows = (purchaseResult.data ?? []) as PurchaseRow[];
   const saleRows = (salesResult.data ?? []) as SaleRow[];
   const movementRows = (movementResult.data ?? []) as MovementRow[];
 
   const totalStock = inventoryRows.reduce((total, row) => total + Number(row.quantity || 0), 0);
   const reservedStock = inventoryRows.reduce((total, row) => total + Number(row.reserved_quantity || 0), 0);
   const availableStock = Math.max(0, totalStock - reservedStock);
-  const pendingPurchaseValue = purchaseRows.reduce((total, row) => total + Number(row.total_amount || 0), 0);
   const recentSalesValue = saleRows.reduce((total, row) => total + Number(row.total_amount || 0), 0);
   const stockUtilization = totalStock > 0 ? Math.min(100, Math.round((reservedStock / totalStock) * 100)) : 0;
   const dataWarnings = [
     productResult.error,
     inventoryResult.error,
-    purchaseResult.error,
     salesResult.error,
     movementResult.error,
   ].filter(Boolean);
@@ -328,16 +294,10 @@ export default async function DashboardPage() {
         </div>
       </section>
 
-      <section className="grid gap-6 xl:grid-cols-2">
+      <section>
         <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
           <div className="flex items-center justify-between border-b border-slate-100 px-5 py-5"><div><h2 className="font-bold text-slate-950">Recent sales</h2><p className="mt-1 text-xs text-slate-500">Latest completed transactions</p></div><Link href="/sales" className="rounded-lg px-2 py-1 text-xs font-semibold text-slate-600 hover:bg-slate-100">View all →</Link></div>
           {saleRows.length === 0 ? <div className="p-10 text-center"><p className="text-sm font-medium text-slate-700">No completed sales yet</p><p className="mt-1 text-xs text-slate-400">Completed transactions will appear here.</p></div> : <div className="divide-y divide-slate-100">{saleRows.map((sale) => <div key={sale.id} className="flex items-center justify-between gap-4 px-5 py-4 hover:bg-slate-50"><div className="min-w-0"><p className="truncate text-sm font-semibold text-slate-900">{sale.sale_number}</p><p className="mt-0.5 text-xs text-slate-400">{formatDate(sale.sold_at)}</p></div><p className="shrink-0 text-sm font-bold text-slate-900">{formatCurrency(Number(sale.total_amount || 0))}</p></div>)}</div>}
-        </div>
-
-        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-          <div className="flex items-center justify-between border-b border-slate-100 px-5 py-5"><div><h2 className="font-bold text-slate-950">Pending purchases</h2><p className="mt-1 text-xs text-slate-500">Orders requiring attention</p></div><Link href="/purchases" className="rounded-lg px-2 py-1 text-xs font-semibold text-slate-600 hover:bg-slate-100">View all →</Link></div>
-          {purchaseRows.length === 0 ? <div className="p-10 text-center"><p className="text-sm font-medium text-slate-700">No pending purchases</p><p className="mt-1 text-xs text-slate-400">Purchase orders needing attention will appear here.</p></div> : <div className="divide-y divide-slate-100">{purchaseRows.map((purchase) => <div key={purchase.id} className="flex items-center justify-between gap-4 px-5 py-4 hover:bg-slate-50"><div className="min-w-0"><p className="truncate text-sm font-semibold text-slate-900">{purchase.order_number}</p><p className="mt-1 text-xs text-slate-400">{formatDate(purchase.created_at)}</p></div><div className="flex shrink-0 items-center gap-3"><span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold capitalize ring-1 ring-inset ${getPurchaseStatusTone(purchase.status)}`}>{purchase.status.replaceAll("_", " ")}</span><p className="hidden text-sm font-bold text-slate-900 sm:block">{formatCurrency(Number(purchase.total_amount || 0))}</p></div></div>)}</div>}
-          <div className="border-t border-slate-100 bg-slate-50/70 px-5 py-3.5"><div className="flex items-center justify-between text-sm"><span className="text-slate-500">Pending purchase value</span><span className="font-bold text-slate-950">{formatCurrency(pendingPurchaseValue)}</span></div></div>
         </div>
       </section>
 
