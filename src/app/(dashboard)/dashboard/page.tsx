@@ -317,7 +317,7 @@ export default async function DashboardPage() {
           {[
             ["/products", "Products", "Manage your product catalogue"],
             ["/inventory", "Inventory", "Monitor stock and availability"],
-            ["/purchases", "New purchase", "Create and manage purchase orders"],
+            ["/reports", "AI report", "Generate and view AI-powered inventory reports"],            
             ["/sales", "New sale", "Record a customer transaction"],
           ].map(([href, title, description]) => (
             <Link key={href} href={href} className="group rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md">
