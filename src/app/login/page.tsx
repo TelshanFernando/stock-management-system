@@ -20,24 +20,34 @@ export default function LoginPage() {
     event.preventDefault();
 
     const normalizedEmail = email.trim().toLowerCase();
+    const enteredPassword = password;
 
     setError("");
+
+    if (!normalizedEmail) {
+      setError("Please enter an email address.");
+      return;
+    }
+
+    if (!enteredPassword) {
+      setError("Please enter your password.");
+      return;
+    }
+
     setLoading(true);
 
     try {
       const { data, error: signInError } =
         await supabase.auth.signInWithPassword({
           email: normalizedEmail,
-          password,
+          password: enteredPassword,
         });
 
       if (signInError) {
         const message = signInError.message.toLowerCase();
 
         if (message.includes("invalid login credentials")) {
-          setError(
-            "Invalid email or password. Please check your credentials or create an account first."
-          );
+          setError("Invalid email or password. Please check your credentials.");
         } else if (message.includes("email not confirmed")) {
           setError("Please confirm your email address before signing in.");
         } else {
@@ -47,25 +57,23 @@ export default function LoginPage() {
         return;
       }
 
-      if (!data.session) {
+      if (!data.session || !data.user) {
         setError(
-          "Sign-in succeeded, but no session was created. Please try again."
+          "Sign-in succeeded, but no session was created. Please try again.",
         );
         return;
       }
 
-      await new Promise((resolve) => setTimeout(resolve, 100));
-
       if (normalizedEmail === CASH_REGISTER_EMAIL) {
-        router.push("/dashboardcash");
+        router.replace("/dashboardcash");
       } else {
-        router.push("/dashboard");
+        router.replace("/dashboard");
       }
 
       router.refresh();
     } catch {
       setError(
-        "Unable to sign in right now. Please check your connection and try again."
+        "Unable to sign in right now. Please check your connection and try again.",
       );
     } finally {
       setLoading(false);
@@ -102,12 +110,13 @@ export default function LoginPage() {
               <input
                 id="email"
                 name="email"
-                type="email"
+                type="text"
+                inputMode="email"
                 autoComplete="email"
-                required
+                required={false}
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
-                placeholder="you@example.com"
+                placeholder="Enter your email"
                 className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
               />
             </div>
@@ -136,9 +145,7 @@ export default function LoginPage() {
                 <input
                   type="checkbox"
                   checked={showPassword}
-                  onChange={(event) =>
-                    setShowPassword(event.target.checked)
-                  }
+                  onChange={(event) => setShowPassword(event.target.checked)}
                   className="h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-400"
                 />
 
@@ -170,7 +177,7 @@ export default function LoginPage() {
             </p>
 
             <p className="mt-3 text-xs text-slate-400">
-              Secure authentication powered by Supabase 
+              Secure authentication powered by Supabase
             </p>
           </div>
         </div>
