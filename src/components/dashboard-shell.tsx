@@ -157,7 +157,7 @@ export default function DashboardShell({
               <p className="text-xs font-bold text-slate-600">System operational</p>
             </div>
             <p className="mt-1 text-xs leading-5 text-slate-500">
-              Database and core services are online.
+              AI Powered Stock-Management System
             </p>
           </div>
 
