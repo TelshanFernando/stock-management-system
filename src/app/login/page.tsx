@@ -2,7 +2,6 @@
 
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 
 const CASH_REGISTER_EMAIL = "cash.register.user@gmail.com";
@@ -167,17 +166,11 @@ export default function LoginPage() {
 
           <div className="mt-6 border-t border-slate-100 pt-5 text-center">
             <p className="text-sm text-slate-500">
-              Don&apos;t have an account?{" "}
-              <Link
-                href="/signup"
-                className="font-semibold text-slate-900 hover:underline"
-              >
-                Create one
-              </Link>
+              --AI powered Stock Management System--
             </p>
 
             <p className="mt-3 text-xs text-slate-400">
-              Secure authentication powered by Supabase
+              Secure authentication powered by Supabase 
             </p>
           </div>
         </div>
